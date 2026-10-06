@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -58,11 +58,11 @@
   <!-- Auth Screen -->
   <div id="auth-screen" class="auth-overlay">
     <div class="auth-box">
-      <h2 id="auth-title">Connexion à Nuxya</h2>
-      <input type="text" id="auth-username" placeholder="Nom d'utilisateur" />
-      <input type="password" id="auth-password" placeholder="Mot de passe" />
-      <button id="auth-submit-btn" onclick="handleAuth()">Connexion</button>
-      <div class="auth-toggle" onclick="toggleAuthMode()">Pas de compte ? S'inscrire</div>
+      <h2 id="auth-title">Log in to Nuxya</h2>
+      <input type="text" id="auth-username" placeholder="Username" />
+      <input type="password" id="auth-password" placeholder="Password" />
+      <button id="auth-submit-btn" onclick="handleAuth()">Log In</button>
+      <div class="auth-toggle" onclick="toggleAuthMode()">Need an account? Register</div>
     </div>
   </div>
 
@@ -70,26 +70,26 @@
   <div id="app">
     <div class="sidebar">
       <div>
-        <!-- DMs & Demandes d'amis -->
+        <!-- DMs & Friend Requests -->
         <div class="sidebar-section">
           <div class="section-header">
-            <span>Messages Privés</span>
+            <span>Direct Messages</span>
             <button class="btn btn-sm" onclick="openAddFriendModal()">+ DM</button>
           </div>
           <div class="list-container" id="dms-list"></div>
         </div>
 
-        <!-- Demandes en attente -->
+        <!-- Pending Requests -->
         <div class="sidebar-section">
-          <div class="section-header">Demandes d'amis</div>
+          <div class="section-header">Friend Requests</div>
           <div class="list-container" id="requests-list"></div>
         </div>
 
-        <!-- Groupes -->
+        <!-- Groups -->
         <div class="sidebar-section">
           <div class="section-header">
-            <span>Groupes</span>
-            <button class="btn btn-sm" onclick="openCreateGroupModal()">+ Groupe</button>
+            <span>Groups</span>
+            <button class="btn btn-sm" onclick="openCreateGroupModal()">+ Group</button>
           </div>
           <div class="list-container" id="groups-list"></div>
         </div>
@@ -102,25 +102,25 @@
           <div class="avatar" id="my-avatar-text">U</div>
           <div>
             <div id="my-username" style="font-weight: bold; font-size: 13px;">User</div>
-            <div id="my-bio" style="font-size: 11px; color: #949ba4;">En ligne</div>
+            <div id="my-bio" style="font-size: 11px; color: #949ba4;">Online</div>
           </div>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="logout()">Déconnexion</button>
+        <button class="btn btn-danger btn-sm" onclick="logout()">Log Out</button>
       </div>
     </div>
 
     <!-- Chat Area -->
     <div class="chat-area">
       <div class="chat-header">
-        <span id="chat-title">Sélectionnez une discussion</span>
+        <span id="chat-title">Select a chat</span>
         <div id="chat-actions"></div>
       </div>
 
       <div class="chat-messages" id="chat-messages"></div>
 
       <div class="chat-input-container">
-        <input type="text" id="message-input" class="chat-input" placeholder="Envoyer un message..." onkeydown="if(event.key==='Enter') sendMessage()">
-        <button class="btn" onclick="sendMessage()">Envoyer</button>
+        <input type="text" id="message-input" class="chat-input" placeholder="Send a message..." onkeydown="if(event.key==='Enter') sendMessage()">
+        <button class="btn" onclick="sendMessage()">Send</button>
       </div>
     </div>
   </div>
@@ -128,31 +128,31 @@
   <!-- Modals -->
   <div id="friend-modal" class="modal">
     <div class="auth-box">
-      <h2>Ajouter en ami / DM</h2>
-      <input type="text" id="friend-username" placeholder="Nom d'utilisateur exact" />
-      <button class="btn" onclick="sendFriendRequest()">Envoyer la demande</button>
-      <button class="btn btn-danger" onclick="closeModal('friend-modal')">Fermer</button>
+      <h2>Add Friend / Start DM</h2>
+      <input type="text" id="friend-username" placeholder="Exact username" />
+      <button class="btn" onclick="sendFriendRequest()">Send Request</button>
+      <button class="btn btn-danger" onclick="closeModal('friend-modal')">Close</button>
     </div>
   </div>
 
   <div id="group-modal" class="modal">
     <div class="auth-box">
-      <h2>Créer un groupe</h2>
-      <input type="text" id="group-name" placeholder="Nom du groupe" />
-      <input type="text" id="group-members" placeholder="Pseudos à ajouter (séparés par des virgules)" />
-      <button class="btn" onclick="submitCreateGroup()">Créer</button>
-      <button class="btn btn-danger" onclick="closeModal('group-modal')">Annuler</button>
+      <h2>Create Group</h2>
+      <input type="text" id="group-name" placeholder="Group Name" />
+      <input type="text" id="group-members" placeholder="Usernames to add (comma separated)" />
+      <button class="btn" onclick="submitCreateGroup()">Create</button>
+      <button class="btn btn-danger" onclick="closeModal('group-modal')">Cancel</button>
     </div>
   </div>
 
   <div id="profile-modal" class="modal">
     <div class="auth-box">
-      <h2>Mon Profil Nuxya</h2>
-      <input type="text" id="profile-username" placeholder="Nouveau nom d'utilisateur" />
-      <input type="text" id="profile-bio" placeholder="Bio / Statut" />
-      <input type="text" id="profile-avatar" placeholder="URL photo de profil" />
-      <button class="btn" onclick="saveProfile()">Enregistrer</button>
-      <button class="btn btn-danger" onclick="closeModal('profile-modal')">Annuler</button>
+      <h2>My Nuxya Profile</h2>
+      <input type="text" id="profile-username" placeholder="New Username" />
+      <input type="text" id="profile-bio" placeholder="Bio / Status" />
+      <input type="text" id="profile-avatar" placeholder="Profile Picture URL" />
+      <button class="btn" onclick="saveProfile()">Save</button>
+      <button class="btn btn-danger" onclick="closeModal('profile-modal')">Cancel</button>
     </div>
   </div>
 
@@ -175,14 +175,14 @@
 
     function toggleAuthMode() {
       isRegisterMode = !isRegisterMode;
-      document.getElementById('auth-title').innerText = isRegisterMode ? 'Créer un compte Nuxya' : 'Connexion à Nuxya';
-      document.getElementById('auth-submit-btn').innerText = isRegisterMode ? "S'inscrire" : 'Connexion';
+      document.getElementById('auth-title').innerText = isRegisterMode ? 'Create a Nuxya Account' : 'Log in to Nuxya';
+      document.getElementById('auth-submit-btn').innerText = isRegisterMode ? 'Register' : 'Log In';
     }
 
     async function handleAuth() {
       const username = document.getElementById('auth-username').value.trim();
       const password = document.getElementById('auth-password').value.trim();
-      if (!username || !password) return alert('Remplissez tous les champs');
+      if (!username || !password) return alert('Please fill in all fields');
 
       const email = `${username.toLowerCase()}@nuxya.com`;
 
@@ -191,14 +191,14 @@
           email, password, options: { data: { username } }
         });
         if (error) return alert(error.message);
-        currentUser = { id: data.user.id, username, bio: 'Nouveau membre', avatar_url: '' };
+        currentUser = { id: data.user.id, username, bio: 'New member', avatar_url: '' };
       } else {
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) return alert(error.message);
         currentUser = { 
           id: data.user.id, 
           username: data.user.user_metadata?.username || username,
-          bio: data.user.user_metadata?.bio || 'En ligne',
+          bio: data.user.user_metadata?.bio || 'Online',
           avatar_url: data.user.user_metadata?.avatar_url || ''
         };
       }
@@ -218,11 +218,11 @@
       document.getElementById('app').style.display = 'flex';
       updateProfileUI();
 
-      // Polling de mise à jour toutes les 3 secondes pour garder les listes fraîches
+      // Polling update every 3 seconds to keep lists updated
       setInterval(refreshAll, 3000);
       refreshAll();
 
-      // Écoute Realtime sur les messages
+      // Realtime listener for new messages
       supabaseClient.channel('public:messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
           if (currentChat && payload.new.group_id === currentChat.id) {
@@ -239,7 +239,7 @@
 
     function updateProfileUI() {
       document.getElementById('my-username').innerText = currentUser.username;
-      document.getElementById('my-bio').innerText = currentUser.bio || 'En ligne';
+      document.getElementById('my-bio').innerText = currentUser.bio || 'Online';
       const imgAvatar = document.getElementById('my-avatar-img');
       const textAvatar = document.getElementById('my-avatar-text');
 
@@ -254,18 +254,18 @@
       }
     }
 
-    /* --- GESTION DES AMIS / DMs / BLOCAGES --- */
+    /* --- FRIENDS / DMs / BLOCK MANAGEMENT --- */
 
     async function sendFriendRequest() {
       const targetName = document.getElementById('friend-username').value.trim();
-      if (!targetName || targetName === currentUser.username) return alert('Nom invalide');
+      if (!targetName || targetName === currentUser.username) return alert('Invalid username');
 
       const { data, error } = await supabaseClient
         .from('friends')
         .insert([{ user_id: currentUser.id, friend_username: targetName, status: 'pending' }]);
 
       if (error) alert(error.message);
-      else alert('Demande envoyée !');
+      else alert('Request sent!');
       closeModal('friend-modal');
     }
 
@@ -285,9 +285,9 @@
 
       friends.forEach(f => {
         const isSender = f.user_id === currentUser.id;
-        const otherUser = isSender ? f.friend_username : (f.username || 'Ami');
+        const otherUser = isSender ? f.friend_username : (f.username || 'Friend');
 
-        if (f.status === 'blocked') return; // Masquer si bloqué
+        if (f.status === 'blocked') return; // Hide if blocked
 
         if (f.status === 'pending') {
           if (!isSender) {
@@ -319,13 +319,13 @@
       await supabaseClient.from('friends').update({ status: 'blocked' }).eq('id', id);
       if (currentChat && currentChat.id === id) {
         currentChat = null;
-        document.getElementById('chat-title').innerText = 'Discussion fermée';
+        document.getElementById('chat-title').innerText = 'Chat closed';
         document.getElementById('chat-messages').innerHTML = '';
       }
       refreshAll();
     }
 
-    /* --- GESTION DES GROUPES --- */
+    /* --- GROUP MANAGEMENT --- */
 
     async function loadGroups() {
       const groupsList = document.getElementById('groups-list');
@@ -344,7 +344,7 @@
 
     async function submitCreateGroup() {
       const name = document.getElementById('group-name').value.trim();
-      if (!name) return alert('Nom obligatoire');
+      if (!name) return alert('Name required');
 
       const { data, error } = await supabaseClient
         .from('groups')
@@ -362,21 +362,21 @@
       if (!currentChat || currentChat.type !== 'group') return;
 
       if (currentChat.ownerId === currentUser.id) {
-        // Le créateur quitte -> supprime le groupe
+        // Creator leaves -> delete group
         await supabaseClient.from('groups').delete().eq('id', currentChat.id);
-        alert('Groupe supprimé par le créateur.');
+        alert('Group deleted by the creator.');
       } else {
-        alert('Vous avez quitté le groupe.');
+        alert('You left the group.');
       }
 
       currentChat = null;
-      document.getElementById('chat-title').innerText = 'Sélectionnez une discussion';
+      document.getElementById('chat-title').innerText = 'Select a chat';
       document.getElementById('chat-messages').innerHTML = '';
       document.getElementById('chat-actions').innerHTML = '';
       refreshAll();
     }
 
-    /* --- SYSTEME DE CHAT & MESSAGES --- */
+    /* --- CHAT & MESSAGES SYSTEM --- */
 
     function selectChat(type, id, title, targetUser = null, ownerId = null) {
       currentChat = { type, id, targetUser, ownerId };
@@ -384,10 +384,10 @@
 
       let actionsHTML = '';
       if (type === 'dm') {
-        actionsHTML = `<button class="btn btn-danger btn-sm" onclick="blockUser('${id}')">Bloquer</button>`;
+        actionsHTML = `<button class="btn btn-danger btn-sm" onclick="blockUser('${id}')">Block</button>`;
       } else if (type === 'group') {
         const isOwner = ownerId === currentUser.id;
-        actionsHTML = `<button class="btn btn-danger btn-sm" onclick="leaveOrDeleteGroup()">${isOwner ? 'Supprimer le Groupe' : 'Quitter'}</button>`;
+        actionsHTML = `<button class="btn btn-danger btn-sm" onclick="leaveOrDeleteGroup()">${isOwner ? 'Delete Group' : 'Leave'}</button>`;
       }
       document.getElementById('chat-actions').innerHTML = actionsHTML;
 
@@ -425,7 +425,7 @@
       const chat = document.getElementById('chat-messages');
       const div = document.createElement('div');
       div.className = 'message';
-      const author = msg.username || 'Utilisateur';
+      const author = msg.username || 'User';
 
       div.innerHTML = `
         <div class="avatar">${author[0].toUpperCase()}</div>
