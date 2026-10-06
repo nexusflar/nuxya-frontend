@@ -200,9 +200,9 @@
     }
 
     async function loadGroups() {
-      const groupsList = document.getElementById('groups-list');
-      groupsList.innerHTML = `<div class="group-item" onclick="selectGroup('general-id', 'General')"># General</div>`;
-    }
+  const groupsList = document.getElementById('groups-list');
+  groupsList.innerHTML = `<div class="group-item" onclick="selectGroup('00000000-0000-0000-0000-000000000000', 'General')"># General</div>`;
+}
 
     function selectGroup(id, name) {
       currentGroupId = id;
