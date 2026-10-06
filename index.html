@@ -11,29 +11,29 @@
 
     /* Auth Screens */
     .auth-overlay { position: fixed; inset: 0; background: #1e1f22; display: flex; align-items: center; justify-content: center; z-index: 1000; }
-    .auth-box { background: #2b2d31; padding: 32px; border-radius: 8px; width: 400px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .auth-box { background: #2b2d31; padding: 32px; border-radius: 8px; width: 420px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
     .auth-box h2 { text-align: center; color: #fff; }
     .auth-box input, .auth-box textarea { background: #1e1f22; border: 1px solid #111214; color: #fff; padding: 10px; border-radius: 4px; outline: none; }
-    .auth-box button { background: #5865f2; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .auth-box button { background: #5865f2; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .auth-box button:hover { background: #4752c4; }
     .auth-toggle { text-align: center; color: #00a8fc; cursor: pointer; font-size: 14px; }
 
-    /* Main App Layout */
+    /* Layout */
     #app { display: flex; width: 100vw; height: 100vh; display: none; }
+    .sidebar { width: 280px; background: #2b2d31; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #1f2023; }
+    .sidebar-section { padding: 12px; border-bottom: 1px solid #1f2023; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: bold; color: #949ba4; text-transform: uppercase; margin-bottom: 8px; }
     
-    /* Sidebar */
-    .sidebar { width: 260px; background: #2b2d31; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #1f2023; }
-    .sidebar-header { padding: 16px; font-weight: bold; border-bottom: 1px solid #1f2023; display: flex; justify-content: space-between; align-items: center; }
-    .groups-list { flex: 1; overflow-y: auto; padding: 10px; }
-    .group-item { padding: 10px; border-radius: 4px; cursor: pointer; color: #949ba4; margin-bottom: 4px; display: flex; justify-content: space-between; }
-    .group-item:hover, .group-item.active { background: #35373c; color: #fff; }
+    .list-container { max-height: 200px; overflow-y: auto; }
+    .item-row { padding: 8px; border-radius: 4px; cursor: pointer; color: #dbdee1; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    .item-row:hover, .item-row.active { background: #35373c; color: #fff; }
 
     /* User Profile Footer */
-    .user-footer { background: #232428; padding: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .user-footer { background: #232428; padding: 10px; display: flex; align-items: center; justify-content: space-between; }
     .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .avatar { width: 36px; height: 36px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; object-fit: cover; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; object-fit: cover; font-size: 14px; }
 
-    /* Main Chat Area */
+    /* Chat Area */
     .chat-area { flex: 1; display: flex; flex-direction: column; background: #313338; }
     .chat-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-weight: bold; }
     .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -42,19 +42,14 @@
     .message-content { display: flex; flex-direction: column; }
     .message-author { font-size: 14px; font-weight: bold; color: #f2f3f5; }
     .message-text { font-size: 15px; color: #dbdee1; margin-top: 2px; }
-    .message-media img, .message-media video { max-width: 300px; max-height: 200px; border-radius: 8px; margin-top: 6px; }
 
-    /* Chat Input */
     .chat-input-container { padding: 16px; display: flex; gap: 10px; align-items: center; }
     .chat-input { flex: 1; background: #383a40; border: none; padding: 12px; border-radius: 8px; color: #fff; outline: none; }
 
-    /* Call Box / Video Container */
-    #call-container { background: #111214; height: 200px; display: none; align-items: center; justify-content: center; gap: 10px; padding: 10px; }
-    video { width: 45%; height: 100%; background: #000; border-radius: 8px; object-fit: cover; }
-    
-    .btn { background: #5865f2; color: #fff; padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn { background: #5865f2; color: #fff; padding: 6px 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 13px; }
     .btn-danger { background: #da373c; }
-    .btn-secondary { background: #4e5058; }
+    .btn-success { background: #23a55a; }
+    .btn-sm { padding: 2px 6px; font-size: 11px; }
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 2000; }
   </style>
 </head>
@@ -75,86 +70,100 @@
   <div id="app">
     <div class="sidebar">
       <div>
-        <div class="sidebar-header">
-          <span>Nuxya</span>
-          <button class="btn" style="padding: 4px 8px;" onclick="openCreateGroupModal()">+</button>
+        <!-- DMs & Demandes d'amis -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span>Messages Privés</span>
+            <button class="btn btn-sm" onclick="openAddFriendModal()">+ DM</button>
+          </div>
+          <div class="list-container" id="dms-list"></div>
         </div>
-        <div class="groups-list" id="groups-list"></div>
+
+        <!-- Demandes en attente -->
+        <div class="sidebar-section">
+          <div class="section-header">Demandes d'amis</div>
+          <div class="list-container" id="requests-list"></div>
+        </div>
+
+        <!-- Groupes -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span>Groupes</span>
+            <button class="btn btn-sm" onclick="openCreateGroupModal()">+ Groupe</button>
+          </div>
+          <div class="list-container" id="groups-list"></div>
+        </div>
       </div>
+
+      <!-- User Footer -->
       <div class="user-footer">
         <div class="user-info" onclick="openProfileModal()">
           <img class="avatar" id="my-avatar-img" style="display:none;" />
           <div class="avatar" id="my-avatar-text">U</div>
           <div>
-            <div id="my-username" style="font-weight: bold; font-size: 14px;">User</div>
+            <div id="my-username" style="font-weight: bold; font-size: 13px;">User</div>
             <div id="my-bio" style="font-size: 11px; color: #949ba4;">En ligne</div>
           </div>
         </div>
-        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="logout()">Déconnexion</button>
+        <button class="btn btn-danger btn-sm" onclick="logout()">Déconnexion</button>
       </div>
     </div>
 
+    <!-- Chat Area -->
     <div class="chat-area">
       <div class="chat-header">
-        <span id="chat-title">Sélectionnez un groupe</span>
-        <div>
-          <button class="btn" onclick="startCall(false)">📞 Appel</button>
-          <button class="btn" onclick="startCall(true)">🖥️ Partage d'écran</button>
-        </div>
-      </div>
-
-      <!-- Video Call Screen -->
-      <div id="call-container">
-        <video id="local-video" autoplay muted></video>
-        <video id="remote-video" autoplay></video>
-        <button class="btn btn-danger" onclick="endCall()">Raccrocher</button>
+        <span id="chat-title">Sélectionnez une discussion</span>
+        <div id="chat-actions"></div>
       </div>
 
       <div class="chat-messages" id="chat-messages"></div>
 
       <div class="chat-input-container">
-        <input type="file" id="media-file" style="display: none;" onchange="handleFileUpload(event)">
-        <button class="btn" onclick="document.getElementById('media-file').click()">📎</button>
         <input type="text" id="message-input" class="chat-input" placeholder="Envoyer un message..." onkeydown="if(event.key==='Enter') sendMessage()">
         <button class="btn" onclick="sendMessage()">Envoyer</button>
       </div>
     </div>
   </div>
 
-  <!-- Create Group Modal -->
+  <!-- Modals -->
+  <div id="friend-modal" class="modal">
+    <div class="auth-box">
+      <h2>Ajouter en ami / DM</h2>
+      <input type="text" id="friend-username" placeholder="Nom d'utilisateur exact" />
+      <button class="btn" onclick="sendFriendRequest()">Envoyer la demande</button>
+      <button class="btn btn-danger" onclick="closeModal('friend-modal')">Fermer</button>
+    </div>
+  </div>
+
   <div id="group-modal" class="modal">
     <div class="auth-box">
       <h2>Créer un groupe</h2>
       <input type="text" id="group-name" placeholder="Nom du groupe" />
-      <textarea id="group-members" placeholder="Membres à ajouter (pseudos séparés par une virgule)"></textarea>
+      <input type="text" id="group-members" placeholder="Pseudos à ajouter (séparés par des virgules)" />
       <button class="btn" onclick="submitCreateGroup()">Créer</button>
-      <button class="btn btn-danger" onclick="document.getElementById('group-modal').style.display='none'">Annuler</button>
+      <button class="btn btn-danger" onclick="closeModal('group-modal')">Annuler</button>
     </div>
   </div>
 
-  <!-- Profile Edit Modal -->
   <div id="profile-modal" class="modal">
     <div class="auth-box">
       <h2>Mon Profil Nuxya</h2>
       <input type="text" id="profile-username" placeholder="Nouveau nom d'utilisateur" />
       <input type="text" id="profile-bio" placeholder="Bio / Statut" />
-      <input type="text" id="profile-avatar" placeholder="URL de la photo d'profil" />
+      <input type="text" id="profile-avatar" placeholder="URL photo de profil" />
       <button class="btn" onclick="saveProfile()">Enregistrer</button>
-      <button class="btn btn-danger" onclick="document.getElementById('profile-modal').style.display='none'">Annuler</button>
+      <button class="btn btn-danger" onclick="closeModal('profile-modal')">Annuler</button>
     </div>
   </div>
 
   <script>
     const SUPABASE_URL = "https://jalapucopmgkzysqffsn.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_e19HZNohVPiCdu3xGA-ghQ_JR8lL90s"; 
-
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
+
     let currentUser = null;
-    let currentGroupId = null;
+    let currentChat = null; // { type: 'dm'|'group', id: string, targetUser?: string, ownerId?: string }
     let isRegisterMode = false;
-    let localStream = null;
-    let realtimeChannel = null;
 
     window.onload = () => {
       const savedUser = localStorage.getItem('nuxya_user');
@@ -173,15 +182,13 @@
     async function handleAuth() {
       const username = document.getElementById('auth-username').value.trim();
       const password = document.getElementById('auth-password').value.trim();
-      if (!username || !password) return alert('Veuillez remplir tous les champs');
+      if (!username || !password) return alert('Remplissez tous les champs');
 
       const email = `${username.toLowerCase()}@nuxya.com`;
 
       if (isRegisterMode) {
         const { data, error } = await supabaseClient.auth.signUp({
-          email,
-          password,
-          options: { data: { username } }
+          email, password, options: { data: { username } }
         });
         if (error) return alert(error.message);
         currentUser = { id: data.user.id, username, bio: 'Nouveau membre', avatar_url: '' };
@@ -211,25 +218,28 @@
       document.getElementById('app').style.display = 'flex';
       updateProfileUI();
 
-      // Écoute en temps réel globale pour les nouveaux messages
-      if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
-      
-      realtimeChannel = supabaseClient
-        .channel('public:messages')
+      // Polling de mise à jour toutes les 3 secondes pour garder les listes fraîches
+      setInterval(refreshAll, 3000);
+      refreshAll();
+
+      // Écoute Realtime sur les messages
+      supabaseClient.channel('public:messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-          if (payload.new.group_id === currentGroupId) {
+          if (currentChat && payload.new.group_id === currentChat.id) {
             appendMessage(payload.new);
           }
-        })
-        .subscribe();
+        }).subscribe();
+    }
 
+    function refreshAll() {
+      loadFriendsAndDMs();
       loadGroups();
+      if (currentChat) loadMessages(currentChat.id);
     }
 
     function updateProfileUI() {
       document.getElementById('my-username').innerText = currentUser.username;
       document.getElementById('my-bio').innerText = currentUser.bio || 'En ligne';
-
       const imgAvatar = document.getElementById('my-avatar-img');
       const textAvatar = document.getElementById('my-avatar-text');
 
@@ -244,88 +254,170 @@
       }
     }
 
-    function openProfileModal() {
-      document.getElementById('profile-username').value = currentUser.username;
-      document.getElementById('profile-bio').value = currentUser.bio || '';
-      document.getElementById('profile-avatar').value = currentUser.avatar_url || '';
-      document.getElementById('profile-modal').style.display = 'flex';
+    /* --- GESTION DES AMIS / DMs / BLOCAGES --- */
+
+    async function sendFriendRequest() {
+      const targetName = document.getElementById('friend-username').value.trim();
+      if (!targetName || targetName === currentUser.username) return alert('Nom invalide');
+
+      const { data, error } = await supabaseClient
+        .from('friends')
+        .insert([{ user_id: currentUser.id, friend_username: targetName, status: 'pending' }]);
+
+      if (error) alert(error.message);
+      else alert('Demande envoyée !');
+      closeModal('friend-modal');
     }
 
-    async function saveProfile() {
-      const newUsername = document.getElementById('profile-username').value.trim();
-      const newBio = document.getElementById('profile-bio').value.trim();
-      const newAvatar = document.getElementById('profile-avatar').value.trim();
+    async function loadFriendsAndDMs() {
+      const dmsList = document.getElementById('dms-list');
+      const reqList = document.getElementById('requests-list');
 
-      if (newUsername) currentUser.username = newUsername;
-      currentUser.bio = newBio;
-      currentUser.avatar_url = newAvatar;
+      const { data: friends } = await supabaseClient
+        .from('friends')
+        .select('*')
+        .or(`user_id.eq.${currentUser.id},friend_username.eq.${currentUser.username}`);
 
-      await supabaseClient.auth.updateUser({
-        data: { username: currentUser.username, bio: currentUser.bio, avatar_url: currentUser.avatar_url }
+      dmsList.innerHTML = '';
+      reqList.innerHTML = '';
+
+      if (!friends) return;
+
+      friends.forEach(f => {
+        const isSender = f.user_id === currentUser.id;
+        const otherUser = isSender ? f.friend_username : (f.username || 'Ami');
+
+        if (f.status === 'blocked') return; // Masquer si bloqué
+
+        if (f.status === 'pending') {
+          if (!isSender) {
+            reqList.innerHTML += `
+              <div class="item-row">
+                <span>${otherUser}</span>
+                <div>
+                  <button class="btn btn-success btn-sm" onclick="acceptFriend('${f.id}')">✓</button>
+                  <button class="btn btn-danger btn-sm" onclick="blockUser('${f.id}')">✕</button>
+                </div>
+              </div>`;
+          }
+        } else if (f.status === 'accepted') {
+          const chatId = f.id;
+          dmsList.innerHTML += `
+            <div class="item-row" onclick="selectChat('dm', '${chatId}', '@${otherUser}', '${otherUser}')">
+              <span>@ ${otherUser}</span>
+            </div>`;
+        }
       });
-
-      localStorage.setItem('nuxya_user', JSON.stringify(currentUser));
-      updateProfileUI();
-      document.getElementById('profile-modal').style.display = 'none';
     }
+
+    async function acceptFriend(id) {
+      await supabaseClient.from('friends').update({ status: 'accepted' }).eq('id', id);
+      refreshAll();
+    }
+
+    async function blockUser(id) {
+      await supabaseClient.from('friends').update({ status: 'blocked' }).eq('id', id);
+      if (currentChat && currentChat.id === id) {
+        currentChat = null;
+        document.getElementById('chat-title').innerText = 'Discussion fermée';
+        document.getElementById('chat-messages').innerHTML = '';
+      }
+      refreshAll();
+    }
+
+    /* --- GESTION DES GROUPES --- */
 
     async function loadGroups() {
       const groupsList = document.getElementById('groups-list');
+      const { data: groups } = await supabaseClient.from('groups').select('*');
+
       groupsList.innerHTML = '';
-
-      const { data, error } = await supabaseClient
-        .from('groups')
-        .select('*');
-
-      if (!error && data && data.length > 0) {
-        data.forEach(group => {
-          const item = document.createElement('div');
-          item.className = 'group-item';
-          item.innerText = `# ${group.name}`;
-          item.onclick = () => selectGroup(group.id, group.name);
-          groupsList.appendChild(item);
+      if (groups) {
+        groups.forEach(g => {
+          groupsList.innerHTML += `
+            <div class="item-row" onclick="selectChat('group', '${g.id}', '# ${g.name}', null, '${g.created_by}')">
+              <span># ${g.name}</span>
+            </div>`;
         });
-      } else {
-        groupsList.innerHTML = `<div style="color: #949ba4; font-size: 13px; padding: 10px;">Aucun groupe. Cliquez sur + pour en créer un.</div>`;
       }
     }
 
-    function selectGroup(id, name) {
-      currentGroupId = id;
-      document.getElementById('chat-title').innerText = `# ${name}`;
+    async function submitCreateGroup() {
+      const name = document.getElementById('group-name').value.trim();
+      if (!name) return alert('Nom obligatoire');
+
+      const { data, error } = await supabaseClient
+        .from('groups')
+        .insert([{ name, created_by: currentUser.id }])
+        .select().single();
+
+      if (error) alert(error.message);
+      else {
+        closeModal('group-modal');
+        refreshAll();
+      }
+    }
+
+    async function leaveOrDeleteGroup() {
+      if (!currentChat || currentChat.type !== 'group') return;
+
+      if (currentChat.ownerId === currentUser.id) {
+        // Le créateur quitte -> supprime le groupe
+        await supabaseClient.from('groups').delete().eq('id', currentChat.id);
+        alert('Groupe supprimé par le créateur.');
+      } else {
+        alert('Vous avez quitté le groupe.');
+      }
+
+      currentChat = null;
+      document.getElementById('chat-title').innerText = 'Sélectionnez une discussion';
       document.getElementById('chat-messages').innerHTML = '';
+      document.getElementById('chat-actions').innerHTML = '';
+      refreshAll();
+    }
+
+    /* --- SYSTEME DE CHAT & MESSAGES --- */
+
+    function selectChat(type, id, title, targetUser = null, ownerId = null) {
+      currentChat = { type, id, targetUser, ownerId };
+      document.getElementById('chat-title').innerText = title;
+
+      let actionsHTML = '';
+      if (type === 'dm') {
+        actionsHTML = `<button class="btn btn-danger btn-sm" onclick="blockUser('${id}')">Bloquer</button>`;
+      } else if (type === 'group') {
+        const isOwner = ownerId === currentUser.id;
+        actionsHTML = `<button class="btn btn-danger btn-sm" onclick="leaveOrDeleteGroup()">${isOwner ? 'Supprimer le Groupe' : 'Quitter'}</button>`;
+      }
+      document.getElementById('chat-actions').innerHTML = actionsHTML;
+
       loadMessages(id);
     }
 
     async function loadMessages(groupId) {
-      const { data, error } = await supabaseClient
+      const { data } = await supabaseClient
         .from('messages')
         .select('*')
         .eq('group_id', groupId)
         .order('created_at', { ascending: true });
 
-      if (!error && data) {
-        data.forEach(msg => appendMessage(msg));
-      }
+      const chatBox = document.getElementById('chat-messages');
+      chatBox.innerHTML = '';
+      if (data) data.forEach(msg => appendMessage(msg));
     }
 
-    async function sendMessage(mediaUrl = null) {
+    async function sendMessage() {
       const input = document.getElementById('message-input');
       const content = input.value.trim();
-      if (!content && !mediaUrl) return;
-      if (!currentGroupId) return alert('Veuillez sélectionner un groupe');
+      if (!content || !currentChat) return;
 
-      const { error } = await supabaseClient
-        .from('messages')
-        .insert([{
-          group_id: currentGroupId,
-          user_id: currentUser.id,
-          username: currentUser.username,
-          content,
-          media_url: mediaUrl
-        }]);
+      await supabaseClient.from('messages').insert([{
+        group_id: currentChat.id,
+        user_id: currentUser.id,
+        username: currentUser.username,
+        content
+      }]);
 
-      if (error) alert(error.message);
       input.value = '';
     }
 
@@ -333,67 +425,24 @@
       const chat = document.getElementById('chat-messages');
       const div = document.createElement('div');
       div.className = 'message';
-      
-      let mediaHTML = '';
-      if (msg.media_url) {
-        mediaHTML = `<div class="message-media"><img src="${msg.media_url}" /></div>`;
-      }
-
       const author = msg.username || 'Utilisateur';
+
       div.innerHTML = `
         <div class="avatar">${author[0].toUpperCase()}</div>
         <div class="message-content">
           <div class="message-author">${author}</div>
-          <div class="message-text">${msg.content || ''}</div>
-          ${mediaHTML}
+          <div class="message-text">${msg.content}</div>
         </div>
       `;
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
 
-    function openCreateGroupModal() {
-      document.getElementById('group-modal').style.display = 'flex';
-    }
-
-    async function submitCreateGroup() {
-      const name = document.getElementById('group-name').value.trim();
-      if (!name) return alert('Veuillez saisir un nom de groupe');
-
-      const { data, error } = await supabaseClient
-        .from('groups')
-        .insert([{ name, created_by: currentUser.id }])
-        .select()
-        .single();
-
-      if (error) return alert(error.message);
-
-      document.getElementById('group-modal').style.display = 'none';
-      document.getElementById('group-name').value = '';
-      document.getElementById('group-members').value = '';
-      loadGroups();
-    }
-
-    async function startCall(isScreenShare) {
-      document.getElementById('call-container').style.display = 'flex';
-      try {
-        if (isScreenShare) {
-          localStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-        } else {
-          localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        }
-        document.getElementById('local-video').srcObject = localStream;
-      } catch (err) {
-        alert('Impossible d\'accéder à la caméra ou au micro');
-      }
-    }
-
-    function endCall() {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-      document.getElementById('call-container').style.display = 'none';
-    }
+    /* Modals Helpers */
+    function openAddFriendModal() { document.getElementById('friend-modal').style.display = 'flex'; }
+    function openCreateGroupModal() { document.getElementById('group-modal').style.display = 'flex'; }
+    function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
   </script>
 </body>
 </html>
