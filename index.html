@@ -142,7 +142,6 @@
     <div class="auth-box">
       <h2>Create Group</h2>
       <input type="text" id="group-name" placeholder="Group Name" />
-      <input type="text" id="group-members" placeholder="Usernames to add (comma separated)" />
       <button class="btn" onclick="submitCreateGroup()">Create</button>
       <button class="btn btn-danger" onclick="closeModal('group-modal')">Cancel</button>
     </div>
@@ -226,7 +225,7 @@
 
       supabaseClient.channel('public:messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-          if (currentChat && payload.new.group_id === currentChat.id) {
+          if (currentChat && String(payload.new.group_id) === String(currentChat.id)) {
             appendMessage(payload.new);
           }
         }).subscribe();
@@ -259,13 +258,19 @@
       const targetName = document.getElementById('friend-username').value.trim();
       if (!targetName || targetName.toLowerCase() === currentUser.username.toLowerCase()) return alert('Invalid username');
 
-      const { data, error } = await supabaseClient
+      const { error } = await supabaseClient
         .from('friends')
-        .insert([{ user_id: currentUser.id, username: currentUser.username, friend_username: targetName, status: 'pending' }]);
+        .insert([{ 
+          user_id: currentUser.id, 
+          username: currentUser.username, 
+          friend_username: targetName, 
+          status: 'pending' 
+        }]);
 
       if (error) alert(error.message);
       else alert('Request sent!');
       closeModal('friend-modal');
+      refreshAll();
     }
 
     async function loadFriendsAndDMs() {
@@ -284,7 +289,7 @@
 
       friends.forEach(f => {
         const isSender = f.user_id === currentUser.id;
-        const otherUser = isSender ? f.friend_username : f.username;
+        const otherUser = isSender ? (f.friend_username || 'User') : (f.username || 'User');
 
         if (f.status === 'blocked') return;
 
@@ -342,10 +347,9 @@
       const name = document.getElementById('group-name').value.trim();
       if (!name) return alert('Name required');
 
-      const { data, error } = await supabaseClient
+      const { error } = await supabaseClient
         .from('groups')
-        .insert([{ name, created_by: currentUser.id }])
-        .select().single();
+        .insert([{ name, created_by: currentUser.id }]);
 
       if (error) alert(error.message);
       else {
@@ -372,7 +376,7 @@
     }
 
     function selectChat(type, id, title, targetUser = null, ownerId = null) {
-      currentChat = { type, id, targetUser, ownerId };
+      currentChat = { type, id: String(id), targetUser, ownerId };
       document.getElementById('chat-title').innerText = title;
 
       let actionsHTML = '';
@@ -388,10 +392,10 @@
     }
 
     async function loadMessages(groupId) {
-      const { data } = await supabaseClient
+      const { data, error } = await supabaseClient
         .from('messages')
         .select('*')
-        .eq('group_id', groupId)
+        .eq('group_id', String(groupId))
         .order('created_at', { ascending: true });
 
       const chatBox = document.getElementById('chat-messages');
@@ -405,15 +409,19 @@
       if (!content && !mediaUrl) return;
       if (!currentChat) return alert('Select a chat first');
 
-      await supabaseClient.from('messages').insert([{
-        group_id: currentChat.id,
+      const { error } = await supabaseClient.from('messages').insert([{
+        group_id: String(currentChat.id),
         user_id: currentUser.id,
         username: currentUser.username,
         content: content || null,
         media_url: mediaUrl
       }]);
 
-      input.value = '';
+      if (error) {
+        alert("Error sending message: " + error.message);
+      } else {
+        input.value = '';
+      }
     }
 
     function handleFileUpload(e) {
