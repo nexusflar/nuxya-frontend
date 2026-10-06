@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord Lite</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'gg sans', 'Helvetica Neue', Arial, sans-serif; }
+    body { background-color: #313338; color: #f2f3f5; display: flex; height: 100vh; overflow: hidden; }
+
+    /* Auth Screens */
+    .auth-overlay { position: fixed; inset: 0; background: #1e1f22; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .auth-box { background: #2b2d31; padding: 32px; border-radius: 8px; width: 400px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .auth-box h2 { text-align: center; color: #fff; }
+    .auth-box input, .auth-box textarea { background: #1e1f22; border: 1px solid #111214; color: #fff; padding: 10px; border-radius: 4px; outline: none; }
+    .auth-box button { background: #5865f2; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .auth-box button:hover { background: #4752c4; }
+    .auth-toggle { text-align: center; color: #00a8fc; cursor: pointer; font-size: 14px; }
+
+    /* Main App Layout */
+    #app { display: flex; width: 100vw; height: 100vh; display: none; }
+    
+    /* Sidebar */
+    .sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #1f2023; }
+    .sidebar-header { padding: 16px; font-weight: bold; border-bottom: 1px solid #1f2023; display: flex; justify-content: space-between; align-items: center; }
+    .groups-list { flex: 1; overflow-y: auto; padding: 10px; }
+    .group-item { padding: 10px; border-radius: 4px; cursor: pointer; color: #949ba4; margin-bottom: 4px; display: flex; justify-content: space-between; }
+    .group-item:hover, .group-item.active { background: #35373c; color: #fff; }
+
+    /* User Profile Footer */
+    .user-footer { background: #232428; padding: 10px; display: flex; align-items: center; gap: 10px; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; object-fit: cover; }
+
+    /* Main Chat Area */
+    .chat-area { flex: 1; display: flex; flex-direction: column; background: #313338; }
+    .chat-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-weight: bold; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+    .message { display: flex; gap: 12px; }
+    .message-content { display: flex; flex-direction: column; }
+    .message-author { font-size: 14px; font-weight: bold; color: #f2f3f5; }
+    .message-text { font-size: 15px; color: #dbdee1; margin-top: 2px; }
+    .message-media img, .message-media video { max-width: 300px; max-height: 200px; border-radius: 8px; margin-top: 6px; }
+
+    .reactions { display: flex; gap: 4px; margin-top: 4px; }
+    .reaction-btn { background: #2b2d31; border: 1px solid #3f4147; border-radius: 4px; padding: 2px 6px; font-size: 12px; cursor: pointer; color: #b5bac1; }
+
+    /* Chat Input */
+    .chat-input-container { padding: 16px; display: flex; gap: 10px; align-items: center; }
+    .chat-input { flex: 1; background: #383a40; border: none; padding: 12px; border-radius: 8px; color: #fff; outline: none; }
+
+    /* Call Box / Video Container */
+    #call-container { background: #111214; height: 200px; display: none; align-items: center; justify-content: center; gap: 10px; padding: 10px; }
+    video { width: 45%; height: 100%; background: #000; border-radius: 8px; object-fit: cover; }
+    
+    .btn { background: #5865f2; color: #fff; padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-danger { background: #da373c; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 2000; }
+  </style>
+</head>
+<body>
+
+  <!-- Auth Screen -->
+  <div id="auth-screen" class="auth-overlay">
+    <div class="auth-box">
+      <h2 id="auth-title">Login</h2>
+      <input type="text" id="auth-username" placeholder="Username" />
+      <input type="password" id="auth-password" placeholder="Password" />
+      <button id="auth-submit-btn" onclick="handleAuth()">Login</button>
+      <div class="auth-toggle" onclick="toggleAuthMode()">Need an account? Register</div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app">
+    <div class="sidebar">
+      <div>
+        <div class="sidebar-header">
+          <span>Groups</span>
+          <button class="btn" style="padding: 4px 8px;" onclick="openCreateGroupModal()">+</button>
+        </div>
+        <div class="groups-list" id="groups-list"></div>
+      </div>
+      <div class="user-footer">
+        <div class="avatar" id="my-avatar">U</div>
+        <div>
+          <div id="my-username" style="font-weight: bold; font-size: 14px;">User</div>
+          <div style="font-size: 11px; color: #23a55a;">Online</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-area">
+      <div class="chat-header">
+        <span id="chat-title">Select a Group</span>
+        <div>
+          <button class="btn" onclick="startCall(false)">📞 Call</button>
+          <button class="btn" onclick="startCall(true)">🖥️ Screen Share</button>
+        </div>
+      </div>
+
+      <!-- Video Call Screen -->
+      <div id="call-container">
+        <video id="local-video" autoplay muted></video>
+        <video id="remote-video" autoplay></video>
+        <button class="btn btn-danger" onclick="endCall()">Hang Up</button>
+      </div>
+
+      <div class="chat-messages" id="chat-messages"></div>
+
+      <div class="chat-input-container">
+        <input type="file" id="media-file" style="display: none;" onchange="handleFileUpload(event)">
+        <button class="btn" onclick="document.getElementById('media-file').click()">📎</button>
+        <input type="text" id="message-input" class="chat-input" placeholder="Message group..." onkeydown="if(event.key==='Enter') sendMessage()">
+        <button class="btn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Group Modal -->
+  <div id="group-modal" class="modal">
+    <div class="auth-box">
+      <h2>Create Group (Max 15)</h2>
+      <input type="text" id="group-name" placeholder="Group Name" />
+      <textarea id="group-members" placeholder="Usernames to add (comma separated)"></textarea>
+      <button class="btn" onclick="submitCreateGroup()">Create Group</button>
+      <button class="btn btn-danger" onclick="document.getElementById('group-modal').style.display='none'">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    const BACKEND_URL = "nuxya.vercel.app";
+    
+    let socket;
+    let currentUser = null;
+    let currentGroupId = null;
+    let isRegisterMode = false;
+    let localStream = null;
+    let peerConnection = null;
+
+    // Check Auto-login
+    window.onload = () => {
+      const savedUser = localStorage.getItem('discord_lite_user');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        initApp();
+      }
+    };
+
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('auth-title').innerText = isRegisterMode ? 'Create Account' : 'Login';
+      document.getElementById('auth-submit-btn').innerText = isRegisterMode ? 'Register' : 'Login';
+    }
+
+    async function handleAuth() {
+      const username = document.getElementById('auth-username').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+      if (!username || !password) return alert('Fill in all fields');
+
+      const endpoint = isRegisterMode ? '/api/register' : '/api/login';
+      try {
+        const res = await fetch(BACKEND_URL + endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        
+        if (data.error) return alert(data.error);
+
+        currentUser = data.user;
+        localStorage.setItem('discord_lite_user', JSON.stringify(currentUser));
+        initApp();
+      } catch (err) {
+        alert('Server connection error');
+      }
+    }
+
+    function initApp() {
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      document.getElementById('my-username').innerText = currentUser.username;
+      document.getElementById('my-avatar').innerText = currentUser.username[0].toUpperCase();
+
+      // Connect Socket
+      socket = io(BACKEND_URL);
+      socket.emit('user_connected', currentUser.id);
+
+      socket.on('new_message', (msg) => {
+        if (msg.group_id === currentGroupId) appendMessage(msg);
+      });
+
+      socket.on('reaction_updated', ({ messageId, emoji }) => {
+        const el = document.getElementById(`reaction-${messageId}`);
+        if (el) el.innerText = emoji + " 1";
+      });
+
+      loadGroups();
+    }
+
+    async function loadGroups() {
+      // Mock fetching user groups for demo simplicity
+      const groupsList = document.getElementById('groups-list');
+      groupsList.innerHTML = `<div class="group-item" onclick="selectGroup('general-id', 'General')"># General</div>`;
+    }
+
+    function selectGroup(id, name) {
+      currentGroupId = id;
+      document.getElementById('chat-title').innerText = `# ${name}`;
+      document.getElementById('chat-messages').innerHTML = '';
+      socket.emit('join_group', id);
+    }
+
+    function sendMessage(mediaUrl = null) {
+      const input = document.getElementById('message-input');
+      const content = input.value.trim();
+      if (!content && !mediaUrl) return;
+      if (!currentGroupId) return alert('Select a group first');
+
+      socket.emit('send_message', {
+        groupId: currentGroupId,
+        senderId: currentUser.id,
+        content,
+        mediaUrl
+      });
+      input.value = '';
+    }
+
+    function appendMessage(msg) {
+      const chat = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'message';
+      
+      let mediaHTML = '';
+      if (msg.media_url) {
+        mediaHTML = `<div class="message-media"><img src="${msg.media_url}" /></div>`;
+      }
+
+      div.innerHTML = `
+        <div class="avatar">${msg.users ? msg.users.username[0].toUpperCase() : 'U'}</div>
+        <div class="message-content">
+          <div class="message-author">${msg.users ? msg.users.username : 'User'}</div>
+          <div class="message-text">${msg.content || ''}</div>
+          ${mediaHTML}
+          <div class="reactions">
+            <button class="reaction-btn" id="reaction-${msg.id}" onclick="addReaction('${msg.id}', '❤️')">➕ ❤️</button>
+          </div>
+        </div>
+      `;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function addReaction(msgId, emoji) {
+      socket.emit('add_reaction', { messageId: msgId, emoji, userId: currentUser.id, groupId: currentGroupId });
+    }
+
+    function openCreateGroupModal() {
+      document.getElementById('group-modal').style.display = 'flex';
+    }
+
+    async function submitCreateGroup() {
+      const name = document.getElementById('group-name').value.trim();
+      const rawMembers = document.getElementById('group-members').value;
+      const memberUsernames = rawMembers.split(',').map(m => m.trim()).filter(Boolean);
+
+      if (memberUsernames.length > 14) return alert('Group cannot exceed 15 members total!');
+
+      const res = await fetch(BACKEND_URL + '/api/groups/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, userId: currentUser.id, memberUsernames })
+      });
+      
+      const data = await res.json();
+      if (data.error) return alert(data.error);
+
+      document.getElementById('group-modal').style.display = 'none';
+      selectGroup(data.group.id, data.group.name);
+    }
+
+    // Call / Screen share setup (WebRTC)
+    async function startCall(isScreenShare) {
+      document.getElementById('call-container').style.display = 'flex';
+      try {
+        if (isScreenShare) {
+          localStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+        } else {
+          localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        }
+        document.getElementById('local-video').srcObject = localStream;
+      } catch (err) {
+        alert('Could not access camera/microphone/screen.');
+      }
+    }
+
+    function endCall() {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      document.getElementById('call-container').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
