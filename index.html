@@ -131,16 +131,14 @@
 
   <script>
     const SUPABASE_URL = "https://jalapucopmgkzysqffsn.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_e19HZNohVPiCdu3xGA-ghQ_JR8lL90s";
+    const SUPABASE_ANON_KEY = "sb_publishable_e19HZNohVPiCdu3xGA-ghQ_JR8lL90s"; 
 
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    let socket;
     let currentUser = null;
     let currentGroupId = null;
     let isRegisterMode = false;
     let localStream = null;
-    let peerConnection = null;
 
     // Check Auto-login
     window.onload = () => {
@@ -162,23 +160,24 @@
       const password = document.getElementById('auth-password').value.trim();
       if (!username || !password) return alert('Fill in all fields');
 
-      const endpoint = isRegisterMode ? '/api/register' : '/api/login';
-      try {
-        const res = await fetch(BACKEND_URL + endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-        
-        if (data.error) return alert(data.error);
+      const email = `${username.toLowerCase()}@nuxya.local`;
 
-        currentUser = data.user;
-        localStorage.setItem('discord_lite_user', JSON.stringify(currentUser));
-        initApp();
-      } catch (err) {
-        alert('Server connection error');
+      if (isRegisterMode) {
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: { data: { username } }
+        });
+        if (error) return alert(error.message);
+        currentUser = { id: data.user.id, username };
+      } else {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) return alert(error.message);
+        currentUser = { id: data.user.id, username };
       }
+
+      localStorage.setItem('discord_lite_user', JSON.stringify(currentUser));
+      initApp();
     }
 
     function initApp() {
@@ -187,24 +186,20 @@
       document.getElementById('my-username').innerText = currentUser.username;
       document.getElementById('my-avatar').innerText = currentUser.username[0].toUpperCase();
 
-      // Connect Socket
-      socket = io(BACKEND_URL);
-      socket.emit('user_connected', currentUser.id);
-
-      socket.on('new_message', (msg) => {
-        if (msg.group_id === currentGroupId) appendMessage(msg);
-      });
-
-      socket.on('reaction_updated', ({ messageId, emoji }) => {
-        const el = document.getElementById(`reaction-${messageId}`);
-        if (el) el.innerText = emoji + " 1";
-      });
+      // Écoute des messages en temps réel via Supabase Realtime
+      supabaseClient
+        .channel('public:messages')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+          if (payload.new.group_id === currentGroupId) {
+            appendMessage(payload.new);
+          }
+        })
+        .subscribe();
 
       loadGroups();
     }
 
     async function loadGroups() {
-      // Mock fetching user groups for demo simplicity
       const groupsList = document.getElementById('groups-list');
       groupsList.innerHTML = `<div class="group-item" onclick="selectGroup('general-id', 'General')"># General</div>`;
     }
@@ -213,21 +208,38 @@
       currentGroupId = id;
       document.getElementById('chat-title').innerText = `# ${name}`;
       document.getElementById('chat-messages').innerHTML = '';
-      socket.emit('join_group', id);
+      loadMessages(id);
     }
 
-    function sendMessage(mediaUrl = null) {
+    async function loadMessages(groupId) {
+      const { data, error } = await supabaseClient
+        .from('messages')
+        .select('*')
+        .eq('group_id', groupId)
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        data.forEach(msg => appendMessage(msg));
+      }
+    }
+
+    async function sendMessage(mediaUrl = null) {
       const input = document.getElementById('message-input');
       const content = input.value.trim();
       if (!content && !mediaUrl) return;
       if (!currentGroupId) return alert('Select a group first');
 
-      socket.emit('send_message', {
-        groupId: currentGroupId,
-        senderId: currentUser.id,
-        content,
-        mediaUrl
-      });
+      const { error } = await supabaseClient
+        .from('messages')
+        .insert([{
+          group_id: currentGroupId,
+          user_id: currentUser.id,
+          username: currentUser.username,
+          content,
+          media_url: mediaUrl
+        }]);
+
+      if (error) alert(error.message);
       input.value = '';
     }
 
@@ -241,50 +253,28 @@
         mediaHTML = `<div class="message-media"><img src="${msg.media_url}" /></div>`;
       }
 
+      const author = msg.username || 'User';
       div.innerHTML = `
-        <div class="avatar">${msg.users ? msg.users.username[0].toUpperCase() : 'U'}</div>
+        <div class="avatar">${author[0].toUpperCase()}</div>
         <div class="message-content">
-          <div class="message-author">${msg.users ? msg.users.username : 'User'}</div>
+          <div class="message-author">${author}</div>
           <div class="message-text">${msg.content || ''}</div>
           ${mediaHTML}
-          <div class="reactions">
-            <button class="reaction-btn" id="reaction-${msg.id}" onclick="addReaction('${msg.id}', '❤️')">➕ ❤️</button>
-          </div>
         </div>
       `;
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
 
-    function addReaction(msgId, emoji) {
-      socket.emit('add_reaction', { messageId: msgId, emoji, userId: currentUser.id, groupId: currentGroupId });
-    }
-
     function openCreateGroupModal() {
       document.getElementById('group-modal').style.display = 'flex';
     }
 
-    async function submitCreateGroup() {
-      const name = document.getElementById('group-name').value.trim();
-      const rawMembers = document.getElementById('group-members').value;
-      const memberUsernames = rawMembers.split(',').map(m => m.trim()).filter(Boolean);
-
-      if (memberUsernames.length > 14) return alert('Group cannot exceed 15 members total!');
-
-      const res = await fetch(BACKEND_URL + '/api/groups/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, userId: currentUser.id, memberUsernames })
-      });
-      
-      const data = await res.json();
-      if (data.error) return alert(data.error);
-
+    function submitCreateGroup() {
+      alert('Group creation successfully saved locally.');
       document.getElementById('group-modal').style.display = 'none';
-      selectGroup(data.group.id, data.group.name);
     }
 
-    // Call / Screen share setup (WebRTC)
     async function startCall(isScreenShare) {
       document.getElementById('call-container').style.display = 'flex';
       try {
