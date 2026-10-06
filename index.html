@@ -42,6 +42,7 @@
     .message-content { display: flex; flex-direction: column; }
     .message-author { font-size: 14px; font-weight: bold; color: #f2f3f5; }
     .message-text { font-size: 15px; color: #dbdee1; margin-top: 2px; }
+    .message-media img, .message-media video { max-width: 300px; max-height: 200px; border-radius: 8px; margin-top: 6px; }
 
     .chat-input-container { padding: 16px; display: flex; gap: 10px; align-items: center; }
     .chat-input { flex: 1; background: #383a40; border: none; padding: 12px; border-radius: 8px; color: #fff; outline: none; }
@@ -119,6 +120,8 @@
       <div class="chat-messages" id="chat-messages"></div>
 
       <div class="chat-input-container">
+        <input type="file" id="media-file" style="display: none;" onchange="handleFileUpload(event)">
+        <button class="btn" onclick="document.getElementById('media-file').click()">📎</button>
         <input type="text" id="message-input" class="chat-input" placeholder="Send a message..." onkeydown="if(event.key==='Enter') sendMessage()">
         <button class="btn" onclick="sendMessage()">Send</button>
       </div>
@@ -162,7 +165,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
-    let currentChat = null; // { type: 'dm'|'group', id: string, targetUser?: string, ownerId?: string }
+    let currentChat = null;
     let isRegisterMode = false;
 
     window.onload = () => {
@@ -218,11 +221,9 @@
       document.getElementById('app').style.display = 'flex';
       updateProfileUI();
 
-      // Polling update every 3 seconds to keep lists updated
       setInterval(refreshAll, 3000);
       refreshAll();
 
-      // Realtime listener for new messages
       supabaseClient.channel('public:messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
           if (currentChat && payload.new.group_id === currentChat.id) {
@@ -254,15 +255,13 @@
       }
     }
 
-    /* --- FRIENDS / DMs / BLOCK MANAGEMENT --- */
-
     async function sendFriendRequest() {
       const targetName = document.getElementById('friend-username').value.trim();
-      if (!targetName || targetName === currentUser.username) return alert('Invalid username');
+      if (!targetName || targetName.toLowerCase() === currentUser.username.toLowerCase()) return alert('Invalid username');
 
       const { data, error } = await supabaseClient
         .from('friends')
-        .insert([{ user_id: currentUser.id, friend_username: targetName, status: 'pending' }]);
+        .insert([{ user_id: currentUser.id, username: currentUser.username, friend_username: targetName, status: 'pending' }]);
 
       if (error) alert(error.message);
       else alert('Request sent!');
@@ -276,7 +275,7 @@
       const { data: friends } = await supabaseClient
         .from('friends')
         .select('*')
-        .or(`user_id.eq.${currentUser.id},friend_username.eq.${currentUser.username}`);
+        .or(`user_id.eq.${currentUser.id},friend_username.ilike.${currentUser.username}`);
 
       dmsList.innerHTML = '';
       reqList.innerHTML = '';
@@ -285,9 +284,9 @@
 
       friends.forEach(f => {
         const isSender = f.user_id === currentUser.id;
-        const otherUser = isSender ? f.friend_username : (f.username || 'Friend');
+        const otherUser = isSender ? f.friend_username : f.username;
 
-        if (f.status === 'blocked') return; // Hide if blocked
+        if (f.status === 'blocked') return;
 
         if (f.status === 'pending') {
           if (!isSender) {
@@ -301,9 +300,8 @@
               </div>`;
           }
         } else if (f.status === 'accepted') {
-          const chatId = f.id;
           dmsList.innerHTML += `
-            <div class="item-row" onclick="selectChat('dm', '${chatId}', '@${otherUser}', '${otherUser}')">
+            <div class="item-row" onclick="selectChat('dm', '${f.id}', '@${otherUser}', '${otherUser}')">
               <span>@ ${otherUser}</span>
             </div>`;
         }
@@ -324,8 +322,6 @@
       }
       refreshAll();
     }
-
-    /* --- GROUP MANAGEMENT --- */
 
     async function loadGroups() {
       const groupsList = document.getElementById('groups-list');
@@ -362,7 +358,6 @@
       if (!currentChat || currentChat.type !== 'group') return;
 
       if (currentChat.ownerId === currentUser.id) {
-        // Creator leaves -> delete group
         await supabaseClient.from('groups').delete().eq('id', currentChat.id);
         alert('Group deleted by the creator.');
       } else {
@@ -375,8 +370,6 @@
       document.getElementById('chat-actions').innerHTML = '';
       refreshAll();
     }
-
-    /* --- CHAT & MESSAGES SYSTEM --- */
 
     function selectChat(type, id, title, targetUser = null, ownerId = null) {
       currentChat = { type, id, targetUser, ownerId };
@@ -406,19 +399,32 @@
       if (data) data.forEach(msg => appendMessage(msg));
     }
 
-    async function sendMessage() {
+    async function sendMessage(mediaUrl = null) {
       const input = document.getElementById('message-input');
       const content = input.value.trim();
-      if (!content || !currentChat) return;
+      if (!content && !mediaUrl) return;
+      if (!currentChat) return alert('Select a chat first');
 
       await supabaseClient.from('messages').insert([{
         group_id: currentChat.id,
         user_id: currentUser.id,
         username: currentUser.username,
-        content
+        content: content || null,
+        media_url: mediaUrl
       }]);
 
       input.value = '';
+    }
+
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        sendMessage(evt.target.result);
+      };
+      reader.readAsDataURL(file);
     }
 
     function appendMessage(msg) {
@@ -427,21 +433,50 @@
       div.className = 'message';
       const author = msg.username || 'User';
 
+      let mediaHTML = '';
+      if (msg.media_url) {
+        mediaHTML = `<div class="message-media"><img src="${msg.media_url}" /></div>`;
+      }
+
       div.innerHTML = `
         <div class="avatar">${author[0].toUpperCase()}</div>
         <div class="message-content">
           <div class="message-author">${author}</div>
-          <div class="message-text">${msg.content}</div>
+          ${msg.content ? `<div class="message-text">${msg.content}</div>` : ''}
+          ${mediaHTML}
         </div>
       `;
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
 
-    /* Modals Helpers */
     function openAddFriendModal() { document.getElementById('friend-modal').style.display = 'flex'; }
     function openCreateGroupModal() { document.getElementById('group-modal').style.display = 'flex'; }
-    function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; }
+    function openProfileModal() { 
+      document.getElementById('profile-username').value = currentUser.username;
+      document.getElementById('profile-bio').value = currentUser.bio || '';
+      document.getElementById('profile-avatar').value = currentUser.avatar_url || '';
+      document.getElementById('profile-modal').style.display = 'flex'; 
+    }
+    
+    async function saveProfile() {
+      const newUsername = document.getElementById('profile-username').value.trim();
+      const newBio = document.getElementById('profile-bio').value.trim();
+      const newAvatar = document.getElementById('profile-avatar').value.trim();
+
+      if (newUsername) currentUser.username = newUsername;
+      currentUser.bio = newBio;
+      currentUser.avatar_url = newAvatar;
+
+      await supabaseClient.auth.updateUser({
+        data: { username: currentUser.username, bio: currentUser.bio, avatar_url: currentUser.avatar_url }
+      });
+
+      localStorage.setItem('nuxya_user', JSON.stringify(currentUser));
+      updateProfileUI();
+      closeModal('profile-modal');
+    }
+
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
   </script>
 </body>
