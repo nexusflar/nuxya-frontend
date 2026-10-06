@@ -160,7 +160,7 @@
       const password = document.getElementById('auth-password').value.trim();
       if (!username || !password) return alert('Fill in all fields');
 
-      const email = `${username.toLowerCase()}@nuxya.local`;
+      const email = `${username.toLowerCase()}@gmail.com`;
 
       if (isRegisterMode) {
         const { data, error } = await supabaseClient.auth.signUp({
