@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Discord Lite</title>
+  <title>Nuxya</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'gg sans', 'Helvetica Neue', Arial, sans-serif; }
@@ -22,14 +22,15 @@
     #app { display: flex; width: 100vw; height: 100vh; display: none; }
     
     /* Sidebar */
-    .sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #1f2023; }
+    .sidebar { width: 260px; background: #2b2d31; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #1f2023; }
     .sidebar-header { padding: 16px; font-weight: bold; border-bottom: 1px solid #1f2023; display: flex; justify-content: space-between; align-items: center; }
     .groups-list { flex: 1; overflow-y: auto; padding: 10px; }
     .group-item { padding: 10px; border-radius: 4px; cursor: pointer; color: #949ba4; margin-bottom: 4px; display: flex; justify-content: space-between; }
     .group-item:hover, .group-item.active { background: #35373c; color: #fff; }
 
     /* User Profile Footer */
-    .user-footer { background: #232428; padding: 10px; display: flex; align-items: center; gap: 10px; }
+    .user-footer { background: #232428; padding: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
     .avatar { width: 36px; height: 36px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; object-fit: cover; }
 
     /* Main Chat Area */
@@ -43,9 +44,6 @@
     .message-text { font-size: 15px; color: #dbdee1; margin-top: 2px; }
     .message-media img, .message-media video { max-width: 300px; max-height: 200px; border-radius: 8px; margin-top: 6px; }
 
-    .reactions { display: flex; gap: 4px; margin-top: 4px; }
-    .reaction-btn { background: #2b2d31; border: 1px solid #3f4147; border-radius: 4px; padding: 2px 6px; font-size: 12px; cursor: pointer; color: #b5bac1; }
-
     /* Chat Input */
     .chat-input-container { padding: 16px; display: flex; gap: 10px; align-items: center; }
     .chat-input { flex: 1; background: #383a40; border: none; padding: 12px; border-radius: 8px; color: #fff; outline: none; }
@@ -56,6 +54,7 @@
     
     .btn { background: #5865f2; color: #fff; padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-danger { background: #da373c; }
+    .btn-secondary { background: #4e5058; }
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 2000; }
   </style>
 </head>
@@ -64,11 +63,11 @@
   <!-- Auth Screen -->
   <div id="auth-screen" class="auth-overlay">
     <div class="auth-box">
-      <h2 id="auth-title">Login</h2>
-      <input type="text" id="auth-username" placeholder="Username" />
-      <input type="password" id="auth-password" placeholder="Password" />
-      <button id="auth-submit-btn" onclick="handleAuth()">Login</button>
-      <div class="auth-toggle" onclick="toggleAuthMode()">Need an account? Register</div>
+      <h2 id="auth-title">Connexion à Nuxya</h2>
+      <input type="text" id="auth-username" placeholder="Nom d'utilisateur" />
+      <input type="password" id="auth-password" placeholder="Mot de passe" />
+      <button id="auth-submit-btn" onclick="handleAuth()">Connexion</button>
+      <div class="auth-toggle" onclick="toggleAuthMode()">Pas de compte ? S'inscrire</div>
     </div>
   </div>
 
@@ -77,26 +76,30 @@
     <div class="sidebar">
       <div>
         <div class="sidebar-header">
-          <span>Groups</span>
+          <span>Nuxya</span>
           <button class="btn" style="padding: 4px 8px;" onclick="openCreateGroupModal()">+</button>
         </div>
         <div class="groups-list" id="groups-list"></div>
       </div>
       <div class="user-footer">
-        <div class="avatar" id="my-avatar">U</div>
-        <div>
-          <div id="my-username" style="font-weight: bold; font-size: 14px;">User</div>
-          <div style="font-size: 11px; color: #23a55a;">Online</div>
+        <div class="user-info" onclick="openProfileModal()">
+          <img class="avatar" id="my-avatar-img" style="display:none;" />
+          <div class="avatar" id="my-avatar-text">U</div>
+          <div>
+            <div id="my-username" style="font-weight: bold; font-size: 14px;">User</div>
+            <div id="my-bio" style="font-size: 11px; color: #949ba4;">En ligne</div>
+          </div>
         </div>
+        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="logout()">Déconnexion</button>
       </div>
     </div>
 
     <div class="chat-area">
       <div class="chat-header">
-        <span id="chat-title">Select a Group</span>
+        <span id="chat-title">Sélectionnez un groupe</span>
         <div>
-          <button class="btn" onclick="startCall(false)">📞 Call</button>
-          <button class="btn" onclick="startCall(true)">🖥️ Screen Share</button>
+          <button class="btn" onclick="startCall(false)">📞 Appel</button>
+          <button class="btn" onclick="startCall(true)">🖥️ Partage d'écran</button>
         </div>
       </div>
 
@@ -104,7 +107,7 @@
       <div id="call-container">
         <video id="local-video" autoplay muted></video>
         <video id="remote-video" autoplay></video>
-        <button class="btn btn-danger" onclick="endCall()">Hang Up</button>
+        <button class="btn btn-danger" onclick="endCall()">Raccrocher</button>
       </div>
 
       <div class="chat-messages" id="chat-messages"></div>
@@ -112,8 +115,8 @@
       <div class="chat-input-container">
         <input type="file" id="media-file" style="display: none;" onchange="handleFileUpload(event)">
         <button class="btn" onclick="document.getElementById('media-file').click()">📎</button>
-        <input type="text" id="message-input" class="chat-input" placeholder="Message group..." onkeydown="if(event.key==='Enter') sendMessage()">
-        <button class="btn" onclick="sendMessage()">Send</button>
+        <input type="text" id="message-input" class="chat-input" placeholder="Envoyer un message..." onkeydown="if(event.key==='Enter') sendMessage()">
+        <button class="btn" onclick="sendMessage()">Envoyer</button>
       </div>
     </div>
   </div>
@@ -121,11 +124,23 @@
   <!-- Create Group Modal -->
   <div id="group-modal" class="modal">
     <div class="auth-box">
-      <h2>Create Group (Max 15)</h2>
-      <input type="text" id="group-name" placeholder="Group Name" />
-      <textarea id="group-members" placeholder="Usernames to add (comma separated)"></textarea>
-      <button class="btn" onclick="submitCreateGroup()">Create Group</button>
-      <button class="btn btn-danger" onclick="document.getElementById('group-modal').style.display='none'">Cancel</button>
+      <h2>Créer un groupe</h2>
+      <input type="text" id="group-name" placeholder="Nom du groupe" />
+      <textarea id="group-members" placeholder="Membres à ajouter (pseudos séparés par une virgule)"></textarea>
+      <button class="btn" onclick="submitCreateGroup()">Créer</button>
+      <button class="btn btn-danger" onclick="document.getElementById('group-modal').style.display='none'">Annuler</button>
+    </div>
+  </div>
+
+  <!-- Profile Edit Modal -->
+  <div id="profile-modal" class="modal">
+    <div class="auth-box">
+      <h2>Mon Profil Nuxya</h2>
+      <input type="text" id="profile-username" placeholder="Nouveau nom d'utilisateur" />
+      <input type="text" id="profile-bio" placeholder="Bio / Statut" />
+      <input type="text" id="profile-avatar" placeholder="URL de la photo d'profil" />
+      <button class="btn" onclick="saveProfile()">Enregistrer</button>
+      <button class="btn btn-danger" onclick="document.getElementById('profile-modal').style.display='none'">Annuler</button>
     </div>
   </div>
 
@@ -139,10 +154,10 @@
     let currentGroupId = null;
     let isRegisterMode = false;
     let localStream = null;
+    let realtimeChannel = null;
 
-    // Check Auto-login
     window.onload = () => {
-      const savedUser = localStorage.getItem('discord_lite_user');
+      const savedUser = localStorage.getItem('nuxya_user');
       if (savedUser) {
         currentUser = JSON.parse(savedUser);
         initApp();
@@ -151,16 +166,16 @@
 
     function toggleAuthMode() {
       isRegisterMode = !isRegisterMode;
-      document.getElementById('auth-title').innerText = isRegisterMode ? 'Create Account' : 'Login';
-      document.getElementById('auth-submit-btn').innerText = isRegisterMode ? 'Register' : 'Login';
+      document.getElementById('auth-title').innerText = isRegisterMode ? 'Créer un compte Nuxya' : 'Connexion à Nuxya';
+      document.getElementById('auth-submit-btn').innerText = isRegisterMode ? "S'inscrire" : 'Connexion';
     }
 
     async function handleAuth() {
       const username = document.getElementById('auth-username').value.trim();
       const password = document.getElementById('auth-password').value.trim();
-      if (!username || !password) return alert('Fill in all fields');
+      if (!username || !password) return alert('Veuillez remplir tous les champs');
 
-      const email = `${username.toLowerCase()}@gmail.com`;
+      const email = `${username.toLowerCase()}@nuxya.com`;
 
       if (isRegisterMode) {
         const { data, error } = await supabaseClient.auth.signUp({
@@ -169,25 +184,37 @@
           options: { data: { username } }
         });
         if (error) return alert(error.message);
-        currentUser = { id: data.user.id, username };
+        currentUser = { id: data.user.id, username, bio: 'Nouveau membre', avatar_url: '' };
       } else {
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) return alert(error.message);
-        currentUser = { id: data.user.id, username };
+        currentUser = { 
+          id: data.user.id, 
+          username: data.user.user_metadata?.username || username,
+          bio: data.user.user_metadata?.bio || 'En ligne',
+          avatar_url: data.user.user_metadata?.avatar_url || ''
+        };
       }
 
-      localStorage.setItem('discord_lite_user', JSON.stringify(currentUser));
+      localStorage.setItem('nuxya_user', JSON.stringify(currentUser));
       initApp();
+    }
+
+    function logout() {
+      supabaseClient.auth.signOut();
+      localStorage.removeItem('nuxya_user');
+      location.reload();
     }
 
     function initApp() {
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('app').style.display = 'flex';
-      document.getElementById('my-username').innerText = currentUser.username;
-      document.getElementById('my-avatar').innerText = currentUser.username[0].toUpperCase();
+      updateProfileUI();
 
-      // Écoute des messages en temps réel via Supabase Realtime
-      supabaseClient
+      // Écoute en temps réel globale pour les nouveaux messages
+      if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+      
+      realtimeChannel = supabaseClient
         .channel('public:messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
           if (payload.new.group_id === currentGroupId) {
@@ -199,10 +226,69 @@
       loadGroups();
     }
 
+    function updateProfileUI() {
+      document.getElementById('my-username').innerText = currentUser.username;
+      document.getElementById('my-bio').innerText = currentUser.bio || 'En ligne';
+
+      const imgAvatar = document.getElementById('my-avatar-img');
+      const textAvatar = document.getElementById('my-avatar-text');
+
+      if (currentUser.avatar_url) {
+        imgAvatar.src = currentUser.avatar_url;
+        imgAvatar.style.display = 'block';
+        textAvatar.style.display = 'none';
+      } else {
+        textAvatar.innerText = (currentUser.username || 'U')[0].toUpperCase();
+        textAvatar.style.display = 'flex';
+        imgAvatar.style.display = 'none';
+      }
+    }
+
+    function openProfileModal() {
+      document.getElementById('profile-username').value = currentUser.username;
+      document.getElementById('profile-bio').value = currentUser.bio || '';
+      document.getElementById('profile-avatar').value = currentUser.avatar_url || '';
+      document.getElementById('profile-modal').style.display = 'flex';
+    }
+
+    async function saveProfile() {
+      const newUsername = document.getElementById('profile-username').value.trim();
+      const newBio = document.getElementById('profile-bio').value.trim();
+      const newAvatar = document.getElementById('profile-avatar').value.trim();
+
+      if (newUsername) currentUser.username = newUsername;
+      currentUser.bio = newBio;
+      currentUser.avatar_url = newAvatar;
+
+      await supabaseClient.auth.updateUser({
+        data: { username: currentUser.username, bio: currentUser.bio, avatar_url: currentUser.avatar_url }
+      });
+
+      localStorage.setItem('nuxya_user', JSON.stringify(currentUser));
+      updateProfileUI();
+      document.getElementById('profile-modal').style.display = 'none';
+    }
+
     async function loadGroups() {
-  const groupsList = document.getElementById('groups-list');
-  groupsList.innerHTML = `<div class="group-item" onclick="selectGroup('00000000-0000-0000-0000-000000000000', 'General')"># General</div>`;
-}
+      const groupsList = document.getElementById('groups-list');
+      groupsList.innerHTML = '';
+
+      const { data, error } = await supabaseClient
+        .from('groups')
+        .select('*');
+
+      if (!error && data && data.length > 0) {
+        data.forEach(group => {
+          const item = document.createElement('div');
+          item.className = 'group-item';
+          item.innerText = `# ${group.name}`;
+          item.onclick = () => selectGroup(group.id, group.name);
+          groupsList.appendChild(item);
+        });
+      } else {
+        groupsList.innerHTML = `<div style="color: #949ba4; font-size: 13px; padding: 10px;">Aucun groupe. Cliquez sur + pour en créer un.</div>`;
+      }
+    }
 
     function selectGroup(id, name) {
       currentGroupId = id;
@@ -227,7 +313,7 @@
       const input = document.getElementById('message-input');
       const content = input.value.trim();
       if (!content && !mediaUrl) return;
-      if (!currentGroupId) return alert('Select a group first');
+      if (!currentGroupId) return alert('Veuillez sélectionner un groupe');
 
       const { error } = await supabaseClient
         .from('messages')
@@ -253,7 +339,7 @@
         mediaHTML = `<div class="message-media"><img src="${msg.media_url}" /></div>`;
       }
 
-      const author = msg.username || 'User';
+      const author = msg.username || 'Utilisateur';
       div.innerHTML = `
         <div class="avatar">${author[0].toUpperCase()}</div>
         <div class="message-content">
@@ -270,9 +356,22 @@
       document.getElementById('group-modal').style.display = 'flex';
     }
 
-    function submitCreateGroup() {
-      alert('Group creation successfully saved locally.');
+    async function submitCreateGroup() {
+      const name = document.getElementById('group-name').value.trim();
+      if (!name) return alert('Veuillez saisir un nom de groupe');
+
+      const { data, error } = await supabaseClient
+        .from('groups')
+        .insert([{ name, created_by: currentUser.id }])
+        .select()
+        .single();
+
+      if (error) return alert(error.message);
+
       document.getElementById('group-modal').style.display = 'none';
+      document.getElementById('group-name').value = '';
+      document.getElementById('group-members').value = '';
+      loadGroups();
     }
 
     async function startCall(isScreenShare) {
@@ -285,7 +384,7 @@
         }
         document.getElementById('local-video').srcObject = localStream;
       } catch (err) {
-        alert('Could not access camera/microphone/screen.');
+        alert('Impossible d\'accéder à la caméra ou au micro');
       }
     }
 
