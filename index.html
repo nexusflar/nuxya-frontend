@@ -45,7 +45,7 @@
     .section-header button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; }
     .section-header button:hover { color: var(--text-header); }
 
-    .list-container { max-height: 160px; overflow-y: auto; }
+    .list-container { max-height: 140px; overflow-y: auto; }
     .list-container::-webkit-scrollbar { width: 4px; }
     .list-container::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; }
 
@@ -217,7 +217,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
-    let currentChat = null; // { type: 'dm'|'group', id: string, targetUser?: string, ownerId?: string, status?: string }
+    let currentChat = null;
     let isRegisterMode = false;
 
     window.onload = () => {
@@ -313,7 +313,7 @@
       const targetName = document.getElementById('friend-username').value.trim();
       if (!targetName || targetName.toLowerCase() === currentUser.username.toLowerCase()) return alert('Invalid username');
 
-      // Check if blocked by target or blocked target
+      // Check if blocked
       const { data: blockedCheck } = await supabaseClient
         .from('friends')
         .select('*')
@@ -360,7 +360,6 @@
         const otherUser = isSender ? (f.friend_username || 'User') : (f.username || 'User');
 
         if (f.status === 'blocked') {
-          // Display in blocked section if current user blocked them
           if (isSender) {
             blockedList.innerHTML += `
               <div class="item-row">
@@ -383,7 +382,6 @@
               </div>`;
           }
         } else if (f.status === 'accepted' || f.status === 'unfriended') {
-          // Both accepted and unfriended display in DMs list to preserve chat history
           dmsList.innerHTML += `
             <div class="item-row ${currentChat && currentChat.id === String(f.id) ? 'active' : ''}" onclick="selectChat('dm', '${f.id}', '@ ${otherUser}', '${otherUser}', null, '${f.status}')">
               <span>@ ${otherUser}</span>
@@ -403,13 +401,12 @@
     }
 
     async function unfriendUser(id) {
-      // Updates status to unfriended instead of deleting row to preserve message history
       await supabaseClient.from('friends').update({ status: 'unfriended' }).eq('id', id);
       refreshAll();
     }
 
     async function blockUser(id) {
-      // Block user and delete message history completely
+      // Clear messages and set status to blocked
       await supabaseClient.from('messages').delete().eq('group_id', String(id));
       await supabaseClient.from('friends').update({ status: 'blocked', user_id: currentUser.id }).eq('id', id);
 
@@ -423,8 +420,9 @@
     }
 
     async function unblockUser(id) {
-      // Unblocking deletes the relationship so users can add each other again
-      await supabaseClient.from('friends').delete().eq('id', id);
+      // Delete relation row so users can re-add each other fresh
+      const { error } = await supabaseClient.from('friends').delete().eq('id', id);
+      if (error) alert("Error unblocking: " + error.message);
       refreshAll();
     }
 
