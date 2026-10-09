@@ -45,7 +45,7 @@
     .section-header button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; }
     .section-header button:hover { color: var(--text-header); }
 
-    .list-container { max-height: 180px; overflow-y: auto; }
+    .list-container { max-height: 160px; overflow-y: auto; }
     .list-container::-webkit-scrollbar { width: 4px; }
     .list-container::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; }
 
@@ -79,12 +79,14 @@
     .message-text { font-size: 14px; color: var(--text-normal); margin-top: 2px; line-height: 1.375; word-break: break-word; }
     .message-media img, .message-media video { max-width: 360px; max-height: 240px; border-radius: 8px; margin-top: 8px; }
 
-    /* Input Area */
+    /* Input & Disabled Banner */
     .chat-input-container { padding: 0 16px 24px 16px; display: flex; gap: 10px; align-items: center; background: var(--bg-primary); }
     .chat-input-wrapper { flex: 1; background: #383a40; border-radius: 8px; display: flex; align-items: center; padding: 0 12px; }
     .chat-input { width: 100%; background: transparent; border: none; padding: 11px 0; color: var(--text-header); outline: none; font-size: 14px; }
     .attach-btn { background: transparent; border: none; color: #b5bac1; cursor: pointer; font-size: 18px; padding-right: 10px; }
     .attach-btn:hover { color: var(--text-header); }
+    
+    .chat-disabled-banner { flex: 1; background: #2b2d31; border-radius: 8px; padding: 12px; text-align: center; color: var(--text-muted); font-size: 14px; font-weight: 500; }
 
     /* Buttons & Modals */
     .btn { background: var(--brand); color: #fff; padding: 6px 12px; border-radius: 3px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.15s; }
@@ -129,6 +131,12 @@
           <div class="list-container" id="requests-list"></div>
         </div>
 
+        <!-- Blocked Users Section -->
+        <div class="sidebar-section">
+          <div class="section-header">Blocked Users</div>
+          <div class="list-container" id="blocked-list"></div>
+        </div>
+
         <!-- Groups Section -->
         <div class="sidebar-section">
           <div class="section-header">
@@ -162,7 +170,7 @@
 
       <div class="chat-messages" id="chat-messages"></div>
 
-      <div class="chat-input-container">
+      <div class="chat-input-container" id="chat-input-container">
         <div class="chat-input-wrapper">
           <input type="file" id="media-file" style="display: none;" onchange="handleFileUpload(event)">
           <button class="attach-btn" onclick="document.getElementById('media-file').click()">📎</button>
@@ -209,7 +217,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
-    let currentChat = null;
+    let currentChat = null; // { type: 'dm'|'group', id: string, targetUser?: string, ownerId?: string, status?: string }
     let isRegisterMode = false;
 
     window.onload = () => {
@@ -305,6 +313,17 @@
       const targetName = document.getElementById('friend-username').value.trim();
       if (!targetName || targetName.toLowerCase() === currentUser.username.toLowerCase()) return alert('Invalid username');
 
+      // Check if blocked by target or blocked target
+      const { data: blockedCheck } = await supabaseClient
+        .from('friends')
+        .select('*')
+        .or(`and(user_id.eq.${currentUser.id},friend_username.ilike.${targetName}),and(username.ilike.${targetName},friend_username.ilike.${currentUser.username})`)
+        .eq('status', 'blocked');
+
+      if (blockedCheck && blockedCheck.length > 0) {
+        return alert('Cannot send friend request to this user.');
+      }
+
       const { error } = await supabaseClient
         .from('friends')
         .insert([{ 
@@ -323,6 +342,7 @@
     async function loadFriendsAndDMs() {
       const dmsList = document.getElementById('dms-list');
       const reqList = document.getElementById('requests-list');
+      const blockedList = document.getElementById('blocked-list');
 
       const { data: friends } = await supabaseClient
         .from('friends')
@@ -331,6 +351,7 @@
 
       dmsList.innerHTML = '';
       reqList.innerHTML = '';
+      blockedList.innerHTML = '';
 
       if (!friends) return;
 
@@ -338,7 +359,17 @@
         const isSender = f.user_id === currentUser.id;
         const otherUser = isSender ? (f.friend_username || 'User') : (f.username || 'User');
 
-        if (f.status === 'blocked') return;
+        if (f.status === 'blocked') {
+          // Display in blocked section if current user blocked them
+          if (isSender) {
+            blockedList.innerHTML += `
+              <div class="item-row">
+                <span>@ ${otherUser}</span>
+                <button class="btn btn-sm" onclick="unblockUser('${f.id}')">Unblock</button>
+              </div>`;
+          }
+          return;
+        }
 
         if (f.status === 'pending') {
           if (!isSender) {
@@ -351,9 +382,10 @@
                 </div>
               </div>`;
           }
-        } else if (f.status === 'accepted') {
+        } else if (f.status === 'accepted' || f.status === 'unfriended') {
+          // Both accepted and unfriended display in DMs list to preserve chat history
           dmsList.innerHTML += `
-            <div class="item-row ${currentChat && currentChat.id === String(f.id) ? 'active' : ''}" onclick="selectChat('dm', '${f.id}', '@ ${otherUser}', '${otherUser}')">
+            <div class="item-row ${currentChat && currentChat.id === String(f.id) ? 'active' : ''}" onclick="selectChat('dm', '${f.id}', '@ ${otherUser}', '${otherUser}', null, '${f.status}')">
               <span>@ ${otherUser}</span>
             </div>`;
         }
@@ -365,8 +397,22 @@
       refreshAll();
     }
 
+    async function addFriendBack(otherUsername) {
+      document.getElementById('friend-username').value = otherUsername;
+      sendFriendRequest();
+    }
+
     async function unfriendUser(id) {
-      await supabaseClient.from('friends').delete().eq('id', id);
+      // Updates status to unfriended instead of deleting row to preserve message history
+      await supabaseClient.from('friends').update({ status: 'unfriended' }).eq('id', id);
+      refreshAll();
+    }
+
+    async function blockUser(id) {
+      // Block user and delete message history completely
+      await supabaseClient.from('messages').delete().eq('group_id', String(id));
+      await supabaseClient.from('friends').update({ status: 'blocked', user_id: currentUser.id }).eq('id', id);
+
       if (currentChat && currentChat.id === String(id)) {
         currentChat = null;
         document.getElementById('chat-title').innerText = 'Select a chat';
@@ -376,14 +422,9 @@
       refreshAll();
     }
 
-    async function blockUser(id) {
-      await supabaseClient.from('friends').update({ status: 'blocked' }).eq('id', id);
-      if (currentChat && currentChat.id === String(id)) {
-        currentChat = null;
-        document.getElementById('chat-title').innerText = 'Select a chat';
-        document.getElementById('chat-messages').innerHTML = '';
-        document.getElementById('chat-actions').innerHTML = '';
-      }
+    async function unblockUser(id) {
+      // Unblocking deletes the relationship so users can add each other again
+      await supabaseClient.from('friends').delete().eq('id', id);
       refreshAll();
     }
 
@@ -435,22 +476,48 @@
 
     /* Chat & Messages */
 
-    function selectChat(type, id, title, targetUser = null, ownerId = null) {
-      currentChat = { type, id: String(id), targetUser, ownerId };
+    function selectChat(type, id, title, targetUser = null, ownerId = null, status = 'accepted') {
+      currentChat = { type, id: String(id), targetUser, ownerId, status };
       document.getElementById('chat-title').innerText = title;
 
+      const inputContainer = document.getElementById('chat-input-container');
       let actionsHTML = '';
+
       if (type === 'dm') {
-        actionsHTML = `
-          <button class="btn btn-sm" onclick="unfriendUser('${id}')">Unfriend</button>
-          <button class="btn btn-danger btn-sm" onclick="blockUser('${id}')">Block</button>
-        `;
+        if (status === 'unfriended') {
+          actionsHTML = `
+            <button class="btn btn-sm" onclick="addFriendBack('${targetUser}')">Add Friend</button>
+            <button class="btn btn-danger btn-sm" onclick="blockUser('${id}')">Block</button>
+          `;
+          inputContainer.innerHTML = `<div class="chat-disabled-banner">You are not friends with ${targetUser}. You cannot send messages.</div>`;
+        } else {
+          actionsHTML = `
+            <button class="btn btn-sm" onclick="unfriendUser('${id}')">Unfriend</button>
+            <button class="btn btn-danger btn-sm" onclick="blockUser('${id}')">Block</button>
+          `;
+          inputContainer.innerHTML = `
+            <div class="chat-input-wrapper">
+              <input type="file" id="media-file" style="display: none;" onchange="handleFileUpload(event)">
+              <button class="attach-btn" onclick="document.getElementById('media-file').click()">📎</button>
+              <input type="text" id="message-input" class="chat-input" placeholder="Send a message..." onkeydown="if(event.key==='Enter') sendMessage()">
+            </div>
+            <button class="btn" onclick="sendMessage()">Send</button>
+          `;
+        }
       } else if (type === 'group') {
         const isOwner = ownerId === currentUser.id;
         actionsHTML = `<button class="btn btn-danger btn-sm" onclick="leaveOrDeleteGroup()">${isOwner ? 'Delete Group' : 'Leave'}</button>`;
+        inputContainer.innerHTML = `
+          <div class="chat-input-wrapper">
+            <input type="file" id="media-file" style="display: none;" onchange="handleFileUpload(event)">
+            <button class="attach-btn" onclick="document.getElementById('media-file').click()">📎</button>
+            <input type="text" id="message-input" class="chat-input" placeholder="Send a message..." onkeydown="if(event.key==='Enter') sendMessage()">
+          </div>
+          <button class="btn" onclick="sendMessage()">Send</button>
+        `;
       }
-      document.getElementById('chat-actions').innerHTML = actionsHTML;
 
+      document.getElementById('chat-actions').innerHTML = actionsHTML;
       loadMessages(id);
     }
 
@@ -467,10 +534,12 @@
     }
 
     async function sendMessage(mediaUrl = null) {
-      const input = document.getElementById('message-input');
-      const content = input.value.trim();
-      if (!content && !mediaUrl) return;
       if (!currentChat) return alert('Select a chat first');
+      if (currentChat.status === 'unfriended') return alert('You must be friends to send messages.');
+
+      const input = document.getElementById('message-input');
+      const content = input ? input.value.trim() : '';
+      if (!content && !mediaUrl) return;
 
       const { error } = await supabaseClient.from('messages').insert([{
         group_id: String(currentChat.id),
@@ -482,7 +551,7 @@
 
       if (error) {
         alert("Error sending message: " + error.message);
-      } else {
+      } else if (input) {
         input.value = '';
       }
     }
